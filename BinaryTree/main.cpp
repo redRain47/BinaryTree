@@ -47,7 +47,7 @@ public:
 
 	virtual void operator() (int id, InfType &val)// рекурсивный вывод элементов 
 	{
-		val += val*val;
+		val *= rand();
 	}
 };
 
@@ -164,12 +164,16 @@ private:
 
 	TElem<InfType>* getLastLevelElem(TLevel *level)
 	{
-		TElem<InfType>* elem = level->firstNode;
-		while (elem->nextPtr != NULL)
+		if (level != NULL)
 		{
-			elem = elem->nextPtr;
+			TElem<InfType>* elem = level->firstNode;
+			while (elem->nextPtr != NULL)
+			{
+				elem = elem->nextPtr;
+			}
+			return elem;
 		}
-		return elem;
+		return NULL;
 	}
 
 	void delAll(TElem<InfType> *elem)
@@ -225,7 +229,7 @@ public:
 				++depth;
 			} while (cur != NULL);
 
-			TLevel *temp = levels.selectLevel(depth);
+			TLevel *curLevel = levels.selectLevel(depth); // указатель на уровень добавляемого элемента
 			if (key > parent->ID) // для правого потомка
 			{
 				parent->rightPtr = p;
@@ -239,51 +243,51 @@ public:
 					}
 					else parent->leftPtr->nextPtr = parent->rightPtr;
 				}
-				else if (depth == levels.getDepth()) // есть ли на уровне еще елементы
+				else if (curLevel != NULL) // есть ли на уровне еще елементы
 				{
-					if (key < temp->firstNode->ID) // если эти элементы находятся в правом поддереве
+					if (key < curLevel->firstNode->ID) // если эти элементы находятся в правом поддереве
 					{
-						parent->rightPtr->nextPtr = temp->firstNode;
-						temp->firstNode->prevPtr = parent->rightPtr;
-						temp->firstNode = parent->rightPtr;
+						parent->rightPtr->nextPtr = curLevel->firstNode;
+						curLevel->firstNode->prevPtr = parent->rightPtr;
+						curLevel->firstNode = parent->rightPtr;
 					}
 					else // а если в левом
 					{
-						TElem<InfType>* elem = getLastLevelElem(temp); // получаем текущий последний элемент данного уровня
+						TElem<InfType>* elem = getLastLevelElem(curLevel); // получаем текущий последний элемент данного уровня
 																	   // и связываем его с добавляемым
 						elem->nextPtr = parent->rightPtr;
 						parent->rightPtr->prevPtr = elem;
 					}
 
 				}
-				else levels.newLevel(parent->rightPtr);
+				else levels.newLevel(parent->rightPtr); // если уровень пуст, то создаем для добавляемого новый уровень
 
 			}
-			else
+			else // для левого потомка
 			{
 				parent->leftPtr = p;
 				if (parent->rightPtr) // если существует правый потомок, то связываем его с добавляемым
 				{
 					parent->leftPtr->nextPtr = parent->rightPtr;
 					parent->rightPtr->prevPtr = parent->leftPtr;
-					temp->firstNode = parent->leftPtr;
+					curLevel->firstNode = parent->leftPtr;
 				}
-				else if (levels.selectLevel(depth) != NULL) // есть ли на уровне еще елементы
+				else if (curLevel != NULL) // есть ли на уровне еще елементы
 				{
-					if (key < temp->firstNode->ID)
+					if (key < curLevel->firstNode->ID)
 					{
-						parent->leftPtr->nextPtr = temp->firstNode;
-						temp->firstNode->prevPtr = parent->leftPtr;
-						temp->firstNode = parent->leftPtr;
+						parent->leftPtr->nextPtr = curLevel->firstNode;
+						curLevel->firstNode->prevPtr = parent->leftPtr;
+						curLevel->firstNode = parent->leftPtr;
 					}
 					else
 					{
-						TElem<InfType>* elem = getLastLevelElem(temp); // получаем текущий последний элемент данного уровня
+						TElem<InfType>* elem = getLastLevelElem(curLevel); // получаем текущий последний элемент данного уровня
 						elem->nextPtr = parent->leftPtr;
 						parent->leftPtr->prevPtr = elem;
 					}
 				}
-				else levels.newLevel(parent->leftPtr);
+				else levels.newLevel(parent->leftPtr); // если уровень пуст, то создаем для добавляемого новый уровень
 			}
 		}
 		return true;
@@ -360,11 +364,13 @@ int main()
 			t1.addNode(key, data);
 	}
 
-	BaseAction<int> *p = new Print<int>;
+	/*BaseAction<int> *p = new Print<int>;
 	BaseAction<int> *g = new ChangeInf<int>;
-	/*t1.printLevel();
+	t1.printLevel();
 	t1.actionOnElement(g);
-	t1.actionOnElement(p);*/
+	t1.actionOnElement(p);
+	delete p;
+	delete q;*/
 
 	return 0;
 }
