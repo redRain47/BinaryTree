@@ -41,17 +41,6 @@ public:
 };
 
 template <typename InfType>
-class ChangeInf : public BaseAction<InfType>
-{
-public:
-
-	virtual void operator() (int id, InfType &val)// рекурсивный вывод элементов 
-	{
-		val *= rand();
-	}
-};
-
-template <typename InfType>
 class BTree
 {
 private:
@@ -84,32 +73,67 @@ private:
 		void newLevel(TElem<InfType> *elem)
 		{
 			TLevel *temp = firstLevel;
-			while (temp->next != NULL)
-				temp = temp->next;
-			temp->next = new TLevel(elem);
+			if (temp->firstNode != NULL)
+			{
+				while (temp->next != NULL)
+					temp = temp->next;
+				temp->next = new TLevel(elem);
+			}
+			else
+				temp->firstNode = elem;
 		}
 
-		int getDepth()
+		void insertIntoLevel(TElem<InfType> *newElem, int depth)
 		{
-			TLevel *temp = firstLevel;
-			int d = 0;
-			while (temp != NULL)
+			if (newElem != NULL)
 			{
-				d++;
-				temp = temp->next;
+				TLevel* curLevel = selectLevel(depth);
+				if (curLevel != NULL)
+				{
+					TElem<InfType>* curElem = curLevel->firstNode;
+					while (curElem->nextPtr != NULL && newElem->ID > curElem->ID) // доходим до нужного элемента
+					{
+						curElem = curElem->nextPtr;
+					}
+
+					if (newElem->ID < curElem->ID)
+					{
+						if (curElem->prevPtr == NULL) // добавление в начало уровня
+						{
+							newElem->nextPtr = curElem;
+							curElem->prevPtr = newElem;
+							curLevel->firstNode = newElem; // делаем добавляемый элемент головой уровня
+						}
+						else // вставка в уровень
+						{
+							curElem->prevPtr->nextPtr = newElem;
+							newElem->prevPtr = curElem->prevPtr;
+							newElem->nextPtr = curElem;
+							curElem->prevPtr = newElem;
+						}
+					}
+					else if (curElem->nextPtr == NULL) // добавление в конец уровня
+					{
+						curElem->nextPtr = newElem;
+						newElem->prevPtr = curElem;
+					}
+				}
+				else
+				{
+					newLevel(newElem);
+				}
 			}
-			return d;
 		}
 
 		TLevel* selectLevel(int number)
 		{
 			TLevel* temp = firstLevel;
-			while (temp->next != NULL && number != 1)
+			while (temp != NULL && number != 1)
 			{
 				temp = temp->next;
 				--number;
 			}
-			return (number == 1) ? temp : NULL;
+			return temp;
 		}
 
 		~Levels()
@@ -127,7 +151,7 @@ private:
 
 	Levels levels;
 
-	bool searchKey(int key, TElem<InfType> *parent = NULL) // поиск по ключу
+	bool searchKey(int key, int &depth, TElem<InfType> *&parent) // поиск по ключу
 	{
 		TElem<InfType> *cur = root;
 		while (cur != NULL) // пока не дойдем до листа 
@@ -135,13 +159,14 @@ private:
 			if (key == cur->ID) // если ключи совпадают, то элемент найден
 				return true;
 			parent = cur; // запоминаем адрес родителя
+			++depth;
 			cur = key > cur->ID ? cur->rightPtr : cur->leftPtr;
 		}
 		return false; // если дошли до листа и не нашли элемент
 	}
 
 	// поиск в глубину с левым приоритетом
-	TElem<InfType>* depthSearchLeft(InfType val, TElem<InfType> *cur, TElem<InfType> *parent = NULL)
+	TElem<InfType>* depthSearchLeft(InfType val, TElem<InfType> *cur, TElem<InfType> *&parent)
 	{
 		if (cur == NULL || cur->inf == val) // базовый случай
 			return cur;
@@ -152,7 +177,7 @@ private:
 	}
 
 	// поиск в глубину с правым приоритетом
-	TElem<InfType>* depthSearchRight(InfType val, TElem<InfType> *cur, TElem<InfType> *parent = NULL)
+	TElem<InfType>* depthSearchRight(InfType val, TElem<InfType> *cur, TElem<InfType> *&parent)
 	{
 		if (cur == NULL || cur->inf == val)
 			return cur;
@@ -162,18 +187,13 @@ private:
 
 	}
 
-	TElem<InfType>* getLastLevelElem(TLevel *level)
+	void inOrderAction(BaseAction<InfType>* act, TElem<InfType> *elem)
 	{
-		if (level != NULL)
-		{
-			TElem<InfType>* elem = level->firstNode;
-			while (elem->nextPtr != NULL)
-			{
-				elem = elem->nextPtr;
-			}
-			return elem;
-		}
-		return NULL;
+		if (elem == NULL)
+			return;
+		inOrderAction(act, elem->leftPtr);
+		(*act)(elem->ID, elem->inf);
+		inOrderAction(act, elem->rightPtr);
 	}
 
 	void delAll(TElem<InfType> *elem)
@@ -187,7 +207,39 @@ private:
 	}
 
 public:
-	BTree() : root(NULL) { levels.setFirstLevel(root); }
+	BTree() : root(NULL) 
+	{ 
+		levels.setFirstLevel(root);
+	}
+
+	const TElem<InfType>* getRoot()
+	{
+		return root;
+	}
+
+	bool isEmpty()
+	{
+		return (root == NULL) ? true : false;
+	}
+
+	/*BTree& operator=(BTree& bt)
+	{
+		if (bt.isEmpty() || *this == &bt)
+			return *this;
+
+		if (!isEmpty()) // очищаем текущее дерево
+			delAll(this->root);
+		
+		TElem<InfType> *copyRoot = bt.getRoot();
+		copyTree(copyRoot);
+	}*/
+
+	BTree& copyTree(TElem<InfType> *elem)
+	{
+		addNode(elem->ID, elem->inf);
+		copyTree(elem->leftPtr);
+		copyTree(elem->rightPtr);
+	}
 
 	/*void printLevel() // для дебуга
 	{
@@ -208,99 +260,39 @@ public:
 
 	bool addNode(int key, InfType value) // добаление элемента дерева
 	{
-		if (searchElemForKey(key)) // если такой элемент уже существует
-			return false;
-		TElem<InfType> *p = new TElem<InfType>(key, value);
-		int depth = 1; // глубина добавляемого элемента
+		TElem<InfType> *cur = new TElem<InfType>(key, value);
+
 		if (this->root == NULL) // если дерево пустое
 		{
-			this->root = p; // садим дерево
-			TLevel *temp = levels.selectLevel(depth);
-			temp->firstNode = root;
-
+			this->root = cur; // садим дерево
+			levels.setFirstLevel(this->root);
 		}
 		else // иначе доходим до соответствующего листа и добавляем ему потомка
 		{
-			TElem<InfType> *cur = this->root,
-				*parent;
-			do {
-				parent = cur;
-				cur = key > cur->ID ? cur->rightPtr : cur->leftPtr;
-				++depth;
-			} while (cur != NULL);
+			int depth = 1; // глубина добавляемого элемента
+			TElem<InfType>*	parent = NULL;
 
-			TLevel *curLevel = levels.selectLevel(depth); // указатель на уровень добавляемого элемента
-			if (key > parent->ID) // для правого потомка
+			if (searchKey(key, depth, parent)) // если такой элемент уже существует
 			{
-				parent->rightPtr = p;
-				if (parent->leftPtr) // если существует левый потомок, то связываем его с добавляемым
-				{
-					parent->rightPtr->prevPtr = parent->leftPtr;
-					if (parent->leftPtr->nextPtr) // если левый потомок уже указывает на следующий элемент уровня
-					{
-						parent->rightPtr->nextPtr = parent->leftPtr->nextPtr;
-						parent->leftPtr->nextPtr = parent->rightPtr;
-					}
-					else parent->leftPtr->nextPtr = parent->rightPtr;
-				}
-				else if (curLevel != NULL) // есть ли на уровне еще елементы
-				{
-					if (key < curLevel->firstNode->ID) // если эти элементы находятся в правом поддереве
-					{
-						parent->rightPtr->nextPtr = curLevel->firstNode;
-						curLevel->firstNode->prevPtr = parent->rightPtr;
-						curLevel->firstNode = parent->rightPtr;
-					}
-					else // а если в левом
-					{
-						TElem<InfType>* elem = getLastLevelElem(curLevel); // получаем текущий последний элемент данного уровня
-																	   // и связываем его с добавляемым
-						elem->nextPtr = parent->rightPtr;
-						parent->rightPtr->prevPtr = elem;
-					}
-
-				}
-				else levels.newLevel(parent->rightPtr); // если уровень пуст, то создаем для добавляемого новый уровень
-
+				delete cur;
+				return false;
 			}
-			else // для левого потомка
-			{
-				parent->leftPtr = p;
-				if (parent->rightPtr) // если существует правый потомок, то связываем его с добавляемым
-				{
-					parent->leftPtr->nextPtr = parent->rightPtr;
-					parent->rightPtr->prevPtr = parent->leftPtr;
-					curLevel->firstNode = parent->leftPtr;
-				}
-				else if (curLevel != NULL) // есть ли на уровне еще елементы
-				{
-					if (key < curLevel->firstNode->ID)
-					{
-						parent->leftPtr->nextPtr = curLevel->firstNode;
-						curLevel->firstNode->prevPtr = parent->leftPtr;
-						curLevel->firstNode = parent->leftPtr;
-					}
-					else
-					{
-						TElem<InfType>* elem = getLastLevelElem(curLevel); // получаем текущий последний элемент данного уровня
-						elem->nextPtr = parent->leftPtr;
-						parent->leftPtr->prevPtr = elem;
-					}
-				}
-				else levels.newLevel(parent->leftPtr); // если уровень пуст, то создаем для добавляемого новый уровень
-			}
+
+			(key > parent->ID) ? parent->rightPtr = cur : parent->leftPtr = cur;
+
+			levels.insertIntoLevel(cur, depth);
 		}
 		return true;
 	}
 
 	bool searchElemForKey(int key) // поиск по ключу
 	{
-		return searchKey(key, NULL);
+		return searchKey(key, NULL, NULL);
 	}
 
 	bool depthSearch(InfType val, bool priority = DEPTH_SEARCH_LEFT) // поиск в глубину по инф части
 	{
-		return (priority == DEPTH_SEARCH_LEFT) ? depthSearchLeft(val, root) != NULL : depthSearchRight(val, root) != NULL;
+		return (priority == DEPTH_SEARCH_LEFT) ? depthSearchLeft(val, root, NULL) != NULL : depthSearchRight(val, root, NULL) != NULL;
 	}
 
 	bool breadthSearch(InfType val) // поиск в ширину
@@ -316,7 +308,7 @@ public:
 			{
 				if (p->inf == val)
 					return true;
-				else p = p->nextPtr;
+				p = p->nextPtr;
 			}
 		}
 
@@ -328,22 +320,22 @@ public:
 		inOrderAction(act, root);
 	}
 
-	void inOrderAction(BaseAction<InfType>* act, TElem<InfType> *elem)
+	int getDepth()
 	{
-		if (elem == NULL)
-			return;
-		inOrderAction(act, elem->leftPtr);
-		(*act)(elem->ID, elem->inf);
-		inOrderAction(act, elem->rightPtr);
+		TLevel *temp = levels.firstLevel;
+		int d = 0;
+		while (temp != NULL)
+		{
+			d++;
+			temp = temp->next;
+		}
+		return d;
 	}
 
 	~BTree()
 	{
 		delAll(this->root);
 	}
-
-
-
 };
 
 int main()
@@ -351,6 +343,7 @@ int main()
 	setlocale(0, "rus");
 
 	BTree<int> t1;
+	//BTree<int> t2;
 	int key = 0;
 	int data;
 
@@ -364,13 +357,10 @@ int main()
 			t1.addNode(key, data);
 	}
 
-	/*BaseAction<int> *p = new Print<int>;
-	BaseAction<int> *g = new ChangeInf<int>;
-	t1.printLevel();
-	t1.actionOnElement(g);
+	//t1.printLevel();
+	BaseAction<int> *p = new Print<int>;
 	t1.actionOnElement(p);
 	delete p;
-	delete q;*/
 
 	return 0;
 }
