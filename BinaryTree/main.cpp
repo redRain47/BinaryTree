@@ -21,10 +21,10 @@ int main()
 {
 	setlocale(0, "rus");
 
-	BinTree<int> t1;
+    BinTree<int> t1, t2;
 	
 	int key = 0;
-	int data;
+	int data = 0;
 
 	while (key != -1)
 	{
@@ -36,10 +36,16 @@ int main()
 			t1.addNode(key, data);
 	}
 
-	//t1.printLevel();
+    t1.delElemForKey(16);
+    //t2 = t1;
+
 	BaseAction<int> *p = new Print<int>;
+    cout << endl;
 	t1.actionOnElement(p);
+    //t2.actionOnElement(p);
 	delete p;
+
+    if (t1.breadthSearch(96)) cout << "\nNICE!\n";
 
 	return 0;
 }
