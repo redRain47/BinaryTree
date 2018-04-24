@@ -316,29 +316,26 @@ void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры д
 template <typename InfType>
 bool BinTree<InfType>::addNode(int key, InfType value)
 {
-    TElem<InfType> *cur = new TElem<InfType>(key, value);
-
-    if (this->root != NULL)// доходим до соответствующего листа и добавляем ему потомка
+    TElem<InfType>*	parent = NULL;
+    if (!searchKey(key, parent))
     {
-        TElem<InfType>*	parent = NULL;
+        TElem<InfType> *cur = new TElem<InfType>(key, value);
 
-        if (searchKey(key, parent)) // если такой элемент уже существует
+        if (this->root != NULL)// доходим до соответствующего листа и добавляем ему потомка
         {
-            delete cur;
-            return false;
+            (key > parent->ID) ? parent->rightPtr = cur : parent->leftPtr = cur;
+            levels.insertIntoLevel(cur);
+        }
+        else // если дерево пустое
+        {
+            this->root = cur; // садим дерево
+            levels.setFirstLevel(this->root);
         }
 
-        (key > parent->ID) ? parent->rightPtr = cur : parent->leftPtr = cur;
-
-        levels.insertIntoLevel(cur);
-    }
-    else // если дерево пустое
-    {
-        this->root = cur; // садим дерево
-        levels.setFirstLevel(this->root);
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 
