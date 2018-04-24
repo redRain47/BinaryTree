@@ -39,6 +39,7 @@ private:
     {
     public:
         TLevel *firstLevel;
+        TLevel *lastLevel;
         TLevel *curLevel;
         int amountOfLevels;
 
@@ -51,21 +52,20 @@ private:
         {
             firstLevel->firstNode = p;
             curLevel = firstLevel;
+            lastLevel = firstLevel;
             amountOfLevels = 1;
         }
 
         void addLevel(TElem<InfType> *elem) // добавить новый уровень
         {
-            TLevel *temp = firstLevel;
-            if (temp->firstNode != NULL)
+            if (lastLevel->firstNode != NULL)
             {
-                while (temp->next != NULL)
-                    temp = temp->next;
-                temp->next = new TLevel(elem);
+                
+                lastLevel->next = new TLevel(elem);
                 ++amountOfLevels;
             }
             else
-                temp->firstNode = elem;
+                lastLevel->firstNode = elem;
         }
 
         void insertIntoLevel(TElem<InfType> *newElem) // поместить добавляемый к дереву элемент в соответствующий уровень
