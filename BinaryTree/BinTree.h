@@ -37,17 +37,21 @@ private:
 
     class Levels
     {
-    private:
-
-        TLevel *firstLevel;
-
     public:
+        TLevel *firstLevel;
+        TLevel *curLevel;
+        int amountOfLevels;
 
-        Levels() : firstLevel(new TLevel) {} // конструктор списка уровней
+        Levels() : firstLevel(new TLevel) 
+        {
+        
+        } // конструктор списка уровней
 
         void setFirstLevel(TElem<InfType> *p) // установить первый уровень дерева
         {
             firstLevel->firstNode = p;
+            curLevel = firstLevel;
+            amountOfLevels = 1;
         }
 
         void addLevel(TElem<InfType> *elem) // добавить новый уровень
@@ -58,16 +62,14 @@ private:
                 while (temp->next != NULL)
                     temp = temp->next;
                 temp->next = new TLevel(elem);
+                ++amountOfLevels;
             }
             else
                 temp->firstNode = elem;
         }
 
-        void insertIntoLevel(TElem<InfType> *newElem, int depth) // поместить добавляемый к дереву элемент в соответствующий уровень
+        void insertIntoLevel(TElem<InfType> *newElem) // поместить добавляемый к дереву элемент в соответствующий уровень
         {
-            if (newElem != NULL)
-            {
-                TLevel* curLevel = selectLevel(depth);
                 if (curLevel != NULL)
                 {
                     TElem<InfType>* curElem = curLevel->firstNode;
@@ -78,18 +80,18 @@ private:
 
                     if (newElem->ID < curElem->ID)
                     {
+                        // связываем текущий и добавляемый элементы
+                        newElem->nextPtr = curElem;
+                        curElem->prevPtr = newElem;
+
                         if (curElem->prevPtr == NULL) // добавление в начало уровня
                         {
-                            newElem->nextPtr = curElem;
-                            curElem->prevPtr = newElem;
                             curLevel->firstNode = newElem; // делаем добавляемый элемент головой уровня
                         }
                         else // вставка в уровень
                         {
                             curElem->prevPtr->nextPtr = newElem;
                             newElem->prevPtr = curElem->prevPtr;
-                            newElem->nextPtr = curElem;
-                            curElem->prevPtr = newElem;
                         }
                     }
                     else if (curElem->nextPtr == NULL) // добавление в конец уровня
@@ -102,23 +104,10 @@ private:
                 {
                     addLevel(newElem);
                 }
-            }
         }
 
-        TLevel* selectLevel(int number) // выбрать заданный уровень
+        bool delFromLevel(TElem<InfType> *elem)
         {
-            TLevel* cur = firstLevel;
-            while (cur != NULL && number != 1)
-            {
-                cur = cur->next;
-                --number;
-            }
-            return cur;
-        }
-
-        bool delFromLevel(TElem<InfType> *elem, int depth)
-        {
-            TLevel *curLevel = selectLevel(depth);
             if ((elem != NULL) && (curLevel != NULL))
             {
                 TElem<InfType> *next = elem->nextPtr;
@@ -153,6 +142,11 @@ private:
             return false;
         }
 
+        bool operator++ ()
+        {
+            return (curLevel != NULL) ? curLevel = curLevel->next : false;
+        }
+
         ~Levels() // деструктор списка уровней
         {
             TLevel *cur = firstLevel;
@@ -168,7 +162,7 @@ private:
 
     Levels levels;
 
-    bool searchKey(int key, int &depth, TElem<InfType> *&parent); // поиск по ключу
+    bool searchKey(int key, TElem<InfType> *&parent); // поиск по ключу
 
     TElem<InfType>* depthSearchLeft(InfType val, TElem<InfType> *cur, TElem<InfType> *&parent); // поиск в глубину с левым приоритетом
 
@@ -176,19 +170,20 @@ private:
 
     void inOrderAction(BaseAction<InfType>* act, TElem<InfType> *elem); // симметричный обход дерева с осуществлением указанного действия
 
-    TElem<InfType>* minElem(TElem<InfType> *root, TElem<InfType> *&parent, int &depth); // минимальный элемент поддерева с указанной вершиной
-
-    void delRoot(); // удаление корня
-
     void delAll(TElem<InfType> *elem); // удаление всех элементов дерева
 
 public:
 
     BinTree() : root(NULL) {} // конструктор дерева
 
+    BinTree(BinTree &bt) : root(NULL) // конструктор копирования дерева
+    {
+        *this = bt;
+    }
+
     inline bool isEmpty() // проверка дерева на пустоту
     {
-        return (root == NULL) ? true : false;
+        return (root == NULL);
     }
 
     BinTree& operator=(BinTree& bt); // перегруженный оператор присваивания для копирования дерева
@@ -209,6 +204,8 @@ public:
 
     bool delElemForData(InfType data); // удаление элемента(ов) дерева по информационной части
 
+    void delAllElems(); // удалить все элементы
+
     int getDepth(); // геттер глубины дерева
 
     ~BinTree(); // деструктор дерева
@@ -220,15 +217,19 @@ public:
 // Приватные методы
 //----------------------------------------------------------------------------------------------------
 template <typename InfType>
-bool BinTree<InfType>::searchKey(int key, int &depth, TElem<InfType> *&parent) // поиск по ключу
+bool BinTree<InfType>::searchKey(int key, TElem<InfType> *&parent) // поиск по ключу
 {
     TElem<InfType> *cur = root;
+    levels.curLevel = levels.firstLevel;
     while (cur != NULL) // пока не дойдем до листа 
     {
         if (key == cur->ID) // если ключи совпадают, то элемент найден
             return true;
         parent = cur; // запоминаем адрес родителя
-        ++depth;
+        if (levels.curLevel != NULL)
+            //levels.curLevel = levels.curLevel->next;
+            ++levels;
+
         cur = key > cur->ID ? cur->rightPtr : cur->leftPtr;
     }
     return false; // если дошли до листа и не нашли элемент
@@ -262,80 +263,11 @@ TElem<InfType>* BinTree<InfType>::depthSearchRight(InfType val, TElem<InfType> *
 template <typename InfType>
 void BinTree<InfType>::inOrderAction(BaseAction<InfType>* act, TElem<InfType> *elem) // симметричный обход дерева с осуществлением указанного действия
 {
-    if (elem == NULL)
-        return;
-    inOrderAction(act, elem->leftPtr);
-    (*act)(elem->ID, elem->inf);
-    inOrderAction(act, elem->rightPtr);
-}
-
-template <typename InfType>
-TElem<InfType>* BinTree<InfType>::minElem(TElem<InfType> *root, TElem<InfType> *&parent, int &depth) // минимальный элемент поддерева с указанной вершиной
-{
-    if (root != NULL)
+    if (elem != NULL)
     {
-        while (root->leftPtr)
-        {
-            parent = root;
-            ++depth;
-            root = root->leftPtr;
-        }
-    }
-    return root;
-}
-
-template <typename InfType>
-void BinTree<InfType>::delRoot() // удаление корня
-{
-    TElem<InfType> *temp = root;
-    if ((root->leftPtr || root->rightPtr) == NULL) // если у корня нет потомков
-    {
-        root = NULL;
-        levels.setFirstLevel(NULL);
-        delete temp;
-    }
-    else if ((root->leftPtr != NULL) && (root->rightPtr == NULL)) // если у корня есть только левый потомок
-    {
-        root->ID = root->leftPtr->ID;
-        root->inf = root->leftPtr->inf;
-        temp = root->leftPtr;
-        levels.delFromLevel(temp, 2);
-        delete temp;
-        root->leftPtr = NULL;
-    }
-    else if ((root->leftPtr == NULL) && (root->rightPtr != NULL)) // если у корня есть только правый потомок
-    {
-        root->ID = root->rightPtr->ID;
-        root->inf = root->rightPtr->inf;
-        temp = root->rightPtr;
-        levels.delFromLevel(temp, 2);
-        delete temp;
-        root->rightPtr = NULL;
-    }
-    else if ((root->leftPtr && root->rightPtr) != NULL) // если есть оба потомка
-    {
-        TElem<InfType> *parentMin = root, *minNode;
-        int depth = 1;
-        // ищем минимальный элемент в правом поддереве
-        minNode = minElem(root->rightPtr, parentMin, depth);
-        // перезаписываем его значения в корня
-        root->ID = minNode->ID;
-        root->inf = minNode->inf;
-        // переводим стрелку либо зануляем
-        if (parentMin != root)
-        {
-            parentMin->leftPtr = minNode->rightPtr;
-        }
-        else
-        {
-            root->rightPtr = NULL;
-            root->leftPtr->nextPtr = NULL;
-        }
-        
-        // убираем элемент с уровня
-        levels.delFromLevel(minNode, depth);
-        // грохаем элемент
-        delete minNode;
+        inOrderAction(act, elem->leftPtr);
+        (*act)(elem->ID, elem->inf);
+        inOrderAction(act, elem->rightPtr);
     }
 }
 
@@ -357,25 +289,27 @@ void BinTree<InfType>::delAll(TElem<InfType> *elem) // удаление всех элементов д
 template <typename InfType>
 BinTree<InfType>& BinTree<InfType>::operator=(BinTree& bt) // перегруженный оператор присваивания для копирования дерева
 {
-    if (bt.isEmpty() || this == &bt) // проверка на самоприсваивание
+    if (this == &bt) // проверка на самоприсваивание
         return *this;
 
-    if (!isEmpty()) // очищаем текущее дерево
-        delAll(this->root);
+    delAllElems();
 
+    levels.curLevel = levels.firstLevel;
     copyTree(bt.root); // собственно, само копирование
+
+    return *this;
 }
 
 template <typename InfType>
 void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры дерева и всех его внутренних связей
 {
-    if (elem == NULL)
-        return;
+    if (elem != NULL)
+    {
+        //addNode(elem->ID, elem->inf);
 
-    addNode(elem->ID, elem->inf);
-
-    copyTree(elem->leftPtr);
-    copyTree(elem->rightPtr);
+        copyTree(elem->leftPtr);
+        copyTree(elem->rightPtr);
+    }
 }
 
 
@@ -384,17 +318,11 @@ bool BinTree<InfType>::addNode(int key, InfType value)
 {
     TElem<InfType> *cur = new TElem<InfType>(key, value);
 
-    if (this->root == NULL) // если дерево пустое
+    if (this->root != NULL)// доходим до соответствующего листа и добавляем ему потомка
     {
-        this->root = cur; // садим дерево
-        levels.setFirstLevel(this->root);
-    }
-    else // иначе доходим до соответствующего листа и добавляем ему потомка
-    {
-        int depth = 1; // глубина добавляемого элемента
         TElem<InfType>*	parent = NULL;
 
-        if (searchKey(key, depth, parent)) // если такой элемент уже существует
+        if (searchKey(key, parent)) // если такой элемент уже существует
         {
             delete cur;
             return false;
@@ -402,8 +330,14 @@ bool BinTree<InfType>::addNode(int key, InfType value)
 
         (key > parent->ID) ? parent->rightPtr = cur : parent->leftPtr = cur;
 
-        levels.insertIntoLevel(cur, depth);
+        levels.insertIntoLevel(cur);
     }
+    else // если дерево пустое
+    {
+        this->root = cur; // садим дерево
+        levels.setFirstLevel(this->root);
+    }
+
     return true;
 }
 
@@ -411,9 +345,8 @@ bool BinTree<InfType>::addNode(int key, InfType value)
 template <typename InfType>
 bool BinTree<InfType>::searchElemForKey(int key) // поиск по ключу (интерфейсный метод)
 {
-    int t = 0;
     TElem<InfType> *p;
-    return searchKey(key, t, p); 
+    return searchKey(key, p); 
 }
 
 
@@ -428,21 +361,23 @@ bool BinTree<InfType>::depthSearch(InfType val, bool priority = DEPTH_SEARCH_LEF
 template <typename InfType>
 bool BinTree<InfType>::breadthSearch(InfType val) // поиск в ширину
 {
-    TElem<InfType> *p = root;
-    TLevel *level;
-    int i = 0;
-
-    while (level = levels.selectLevel(++i))
+    if (root != NULL)
     {
-        p = level->firstNode;
-        while (p != NULL)
+        TElem<InfType> *p = root;
+        TLevel *curLevel = levels.firstLevel;
+
+        while (curLevel != NULL)
         {
-            if (p->inf == val)
-                return true;
-            p = p->nextPtr;
+            p = curLevel->firstNode;
+            while (p != NULL)
+            {
+                if (p->inf == val)
+                    return true;
+                p = p->nextPtr;
+            }
+            curLevel = curLevel->next;
         }
     }
-
     return false;
 }
 
@@ -458,14 +393,13 @@ template <typename InfType>
 bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по ключу
 {
     TElem<InfType> *parent = NULL;
-    int depth = 1;
 
-    if (!searchKey(key, depth, parent)) // если элемент не найден
+    if (!searchKey(key, parent)) // если элемент не найден
         return false;
 
     if (parent == NULL)
     {
-        delRoot();
+        //delRoot();
         return true;
     }
 
@@ -488,7 +422,7 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
         }
         else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
         {
-            TElem<InfType> *parentMin = cur, *minNode;
+            /*TElem<InfType> *parentMin = cur, *minNode;
             // ищем минимальный элемент в правом поддереве
             minNode = minElem(cur->rightPtr, parentMin, depth = 1); 
             // перезаписываем его значения в удаляемый элемент
@@ -497,7 +431,7 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
             // первый случай, если в правом поддереве несколько элементов; второй - если один
             (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
             // готовим к удалению
-            cur = minNode;
+            cur = minNode;*/
         }
     }
     else // если работаем с левым потомком
@@ -517,7 +451,7 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
         }
         else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
         {
-            TElem<InfType> *parentMin = cur, *minNode;
+            /*TElem<InfType> *parentMin = cur, *minNode;
             // ищем минимальный элемент в правом поддереве
             minNode = minElem(cur->rightPtr, parentMin, depth = 1);
             // перезаписываем его значения в удаляемый элемент
@@ -526,7 +460,7 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
             // первый случай, если в правом поддереве несколько элементов; второй - если один
             (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
             // готовим к удалению
-            cur = minNode;
+            cur = minNode;*/
         }
     }
    
@@ -549,18 +483,21 @@ bool BinTree<InfType>::delElemForData(InfType data) // удаление элемента(ов) дер
     return isFound;
 }
 
+template <typename InfType>
+void BinTree<InfType>::delAllElems() // удалить все элементы
+{
+    if (root != NULL)
+    {
+        delAll(root);
+        root = NULL;
+    }
+}
+
 
 template <typename InfType>
 int BinTree<InfType>::getDepth() // геттер глубины дерева
 {
-    TLevel *temp = levels.firstLevel;
-    int d = 0;
-    while (temp != NULL)
-    {
-        d++;
-        temp = temp->next;
-    }
-    return d;
+    return levels.amountOfLevels;
 }
 
 
