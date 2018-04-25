@@ -60,12 +60,14 @@ private:
         {
             if (lastLevel->firstNode != NULL)
             {
-                
                 lastLevel->next = new TLevel(elem);
                 ++amountOfLevels;
+                lastLevel = lastLevel->next;
             }
             else
+            {
                 lastLevel->firstNode = elem;
+            }
         }
 
         void insertIntoLevel(TElem<InfType> *newElem) // поместить добавляемый к дереву элемент в соответствующий уровень
@@ -82,16 +84,17 @@ private:
                     {
                         // связываем текущий и добавляемый элементы
                         newElem->nextPtr = curElem;
-                        curElem->prevPtr = newElem;
 
                         if (curElem->prevPtr == NULL) // добавление в начало уровня
                         {
                             curLevel->firstNode = newElem; // делаем добавляемый элемент головой уровня
+                            curElem->prevPtr = newElem;
                         }
                         else // вставка в уровень
                         {
                             curElem->prevPtr->nextPtr = newElem;
                             newElem->prevPtr = curElem->prevPtr;
+                            curElem->prevPtr = newElem;
                         }
                     }
                     else if (curElem->nextPtr == NULL) // добавление в конец уровня
@@ -103,6 +106,7 @@ private:
                 else
                 {
                     addLevel(newElem);
+                    curLevel = lastLevel;
                 }
         }
 
@@ -221,15 +225,14 @@ bool BinTree<InfType>::searchKey(int key, TElem<InfType> *&parent) // поиск по к
 {
     TElem<InfType> *cur = root;
     levels.curLevel = levels.firstLevel;
+    
     while (cur != NULL) // пока не дойдем до листа 
     {
         if (key == cur->ID) // если ключи совпадают, то элемент найден
             return true;
-        parent = cur; // запоминаем адрес родителя
-        if (levels.curLevel != NULL)
-            //levels.curLevel = levels.curLevel->next;
-            ++levels;
 
+        parent = cur; // запоминаем адрес родителя
+        ++levels;
         cur = key > cur->ID ? cur->rightPtr : cur->leftPtr;
     }
     return false; // если дошли до листа и не нашли элемент
@@ -294,7 +297,7 @@ BinTree<InfType>& BinTree<InfType>::operator=(BinTree& bt) // перегруженный опер
 
     delAllElems();
 
-    levels.curLevel = levels.firstLevel;
+    //levels.curLevel = levels.firstLevel;
     copyTree(bt.root); // собственно, само копирование
 
     return *this;
@@ -305,10 +308,70 @@ void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры д
 {
     if (elem != NULL)
     {
-        //addNode(elem->ID, elem->inf);
+        TElem<InfType> *desc = NULL;
+        TElem<InfType> *descCopy = NULL;
+        TElem<InfType> *parent = NULL;
+        TElem<InfType> *nextParent = NULL;
+        TElem<InfType> *parentCopy = NULL;
+        TElem<InfType> *nextParentCopy;
 
-        copyTree(elem->leftPtr);
-        copyTree(elem->rightPtr);
+        root = new TElem<InfType>(elem->ID, elem->inf);
+        parent = root;
+        levels.setFirstLevel(root);
+
+        parentCopy = elem;
+        descCopy = (elem->leftPtr) ? elem->leftPtr : elem->rightPtr;
+       
+        while (descCopy != NULL) // перемещение по списку уровней на уровень ниже на каждой итерации
+        {
+            // копируем первый элемент на уровне
+            desc = new TElem<InfType>(descCopy->ID, descCopy->inf);
+            levels.addLevel(desc);
+            (desc->ID < parent->ID) ? parent->leftPtr = desc : parent->rightPtr = desc;
+            nextParent = desc;
+            nextParentCopy = descCopy;
+
+            // идем по остальным
+            while (descCopy->nextPtr != NULL) // перемещение на один элемент по уровню на каждой итерации
+            {
+                desc->nextPtr = new TElem<InfType>(descCopy->nextPtr->ID, descCopy->nextPtr->inf);
+                desc->nextPtr->prevPtr = desc;
+                desc = desc->nextPtr;
+                while (parent != NULL) // подбираем родителя P.S. условие - чистая формальность, прокатило бы и true
+                {
+                    if (desc->ID < parent->ID)
+                    {
+                        parent->leftPtr = desc;
+                        break;
+                    }
+                    else if (parentCopy->rightPtr)
+                    {
+                        if (desc->ID == parentCopy->rightPtr->ID)
+                        {
+                            parent->rightPtr = desc;
+                            break;
+                        }
+                    }
+                    
+                    parent = parent->nextPtr;  
+                    parentCopy = parentCopy->nextPtr;
+                }
+                descCopy = descCopy->nextPtr;
+            }
+
+            parent = nextParent; // перемещаем уровень родителей текущего дерева
+            parentCopy = nextParentCopy; // перемещаем уровень родителей копируемого дерева
+            while (parentCopy != NULL)
+            {
+                if (descCopy = (parentCopy->leftPtr) ? parentCopy->leftPtr : parentCopy->rightPtr) // перемещаем уровень потомков копируемого дерева
+                {
+                    break;
+                }
+                parentCopy = parentCopy->nextPtr;
+                parent = parent->nextPtr;
+            }
+            desc = NULL;
+        } 
     }
 }
 
@@ -487,6 +550,7 @@ void BinTree<InfType>::delAllElems() // удалить все элементы
     {
         delAll(root);
         root = NULL;
+        levels.~Levels();
     }
 }
 

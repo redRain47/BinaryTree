@@ -21,7 +21,7 @@ int main()
 {
 	setlocale(0, "rus");
 
-    BinTree<int> t1, t2 = t1;
+    BinTree<int> t1, t2;
 	
 	int key = 0;
 	int data = 0;
@@ -39,8 +39,10 @@ int main()
     cout << endl;
     t1.actionOnElement(p);
     t2 = t1;
+    cout << endl;
+    t2.actionOnElement(p);
     delete p;
-    if (t1.breadthSearch(96)) cout << "\nNICE!\n";
+    if (t2.breadthSearch(96)) cout << "\nNICE!\n";
 
 	return 0;
 }
