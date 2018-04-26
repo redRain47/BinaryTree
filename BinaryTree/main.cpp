@@ -21,7 +21,7 @@ int main()
 {
 	setlocale(0, "rus");
 
-    BinTree<int> t1, t2;
+    BinTree<int> t1;
 	
 	int key = 0;
 	int data = 0;
@@ -38,7 +38,10 @@ int main()
     BaseAction<int> *p = new Print<int>;
     cout << endl;
     t1.actionOnElement(p);
-    t2 = t1;
+
+    //t1.delElemForKey(9);
+
+    BinTree<int> t2 = t1;
     cout << endl;
     t2.actionOnElement(p);
     delete p;

@@ -112,7 +112,7 @@ private:
 
         bool delFromLevel(TElem<InfType> *elem)
         {
-            if ((elem != NULL) && (curLevel != NULL))
+            if (elem != NULL)
             {
                 TElem<InfType> *next = elem->nextPtr;
                 TElem<InfType> *prev = elem->prevPtr;
@@ -174,6 +174,8 @@ private:
 
     void inOrderAction(BaseAction<InfType>* act, TElem<InfType> *elem); // симметричный обход дерева с осуществлением указанного действия
 
+    void copyTree(TElem<InfType> *elem); // копирование структуры дерева и всех его внутренних связей
+
     void delAll(TElem<InfType> *elem); // удаление всех элементов дерева
 
 public:
@@ -191,8 +193,6 @@ public:
     }
 
     BinTree& operator=(BinTree& bt); // перегруженный оператор присваивания для копирования дерева
-
-    void copyTree(TElem<InfType> *elem); // копирование структуры дерева и всех его внутренних связей
 
     bool addNode(int key, InfType value); // добаление элемента к дереву
 
@@ -274,6 +274,75 @@ void BinTree<InfType>::inOrderAction(BaseAction<InfType>* act, TElem<InfType> *e
     }
 }
 
+template <typename InfType>
+void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры дерева и всех его внутренних связей
+{
+    if (elem != NULL)
+    {
+        TElem<InfType> *desc = NULL;
+        TElem<InfType> *descCopy = NULL;
+        TElem<InfType> *parent = NULL;
+        TElem<InfType> *nextParent = NULL;
+        TElem<InfType> *parentCopy = NULL;
+        TElem<InfType> *nextParentCopy;
+
+        root = new TElem<InfType>(elem->ID, elem->inf);
+        parent = root;
+        levels.setFirstLevel(root);
+
+        parentCopy = elem;
+        descCopy = (elem->leftPtr) ? elem->leftPtr : elem->rightPtr;
+
+        while (descCopy != NULL) // перемещение по списку уровней на уровень ниже на каждой итерации
+        {
+            // копируем первый элемент на уровне
+            desc = new TElem<InfType>(descCopy->ID, descCopy->inf);
+            levels.addLevel(desc);
+            (desc->ID < parent->ID) ? parent->leftPtr = desc : parent->rightPtr = desc;
+            nextParent = desc;
+            nextParentCopy = descCopy;
+
+            // идем по остальным
+            while (descCopy->nextPtr != NULL) // перемещение на один элемент по уровню на каждой итерации
+            {
+                descCopy = descCopy->nextPtr;
+                desc->nextPtr = new TElem<InfType>(descCopy->ID, descCopy->inf);
+                desc->nextPtr->prevPtr = desc;
+                desc = desc->nextPtr;
+                while (parent != NULL) // подбираем родителя P.S. условие - чистая формальность, прокатило бы и true
+                {
+                    if (desc->ID < parent->ID)
+                    {
+                        parent->leftPtr = desc;
+                        break;
+                    }
+                    else if (descCopy == parentCopy->rightPtr)
+                    {
+                        parent->rightPtr = desc;
+                        break;
+                    }
+
+                    parent = parent->nextPtr;
+                    parentCopy = parentCopy->nextPtr;
+                }
+            }
+
+            parent = nextParent; // перемещаем уровень родителей текущего дерева
+            parentCopy = nextParentCopy; // перемещаем уровень родителей копируемого дерева
+            while (parentCopy != NULL)
+            {
+                if (descCopy = (parentCopy->leftPtr) ? parentCopy->leftPtr : parentCopy->rightPtr) // перемещаем уровень потомков копируемого дерева
+                {
+                    break;
+                }
+                parentCopy = parentCopy->nextPtr;
+                parent = parent->nextPtr;
+            }
+            desc = NULL;
+        }
+    }
+}
+
 
 template <typename InfType>
 void BinTree<InfType>::delAll(TElem<InfType> *elem) // удаление всех элементов дерева
@@ -301,78 +370,6 @@ BinTree<InfType>& BinTree<InfType>::operator=(BinTree& bt) // перегруженный опер
     copyTree(bt.root); // собственно, само копирование
 
     return *this;
-}
-
-template <typename InfType>
-void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры дерева и всех его внутренних связей
-{
-    if (elem != NULL)
-    {
-        TElem<InfType> *desc = NULL;
-        TElem<InfType> *descCopy = NULL;
-        TElem<InfType> *parent = NULL;
-        TElem<InfType> *nextParent = NULL;
-        TElem<InfType> *parentCopy = NULL;
-        TElem<InfType> *nextParentCopy;
-
-        root = new TElem<InfType>(elem->ID, elem->inf);
-        parent = root;
-        levels.setFirstLevel(root);
-
-        parentCopy = elem;
-        descCopy = (elem->leftPtr) ? elem->leftPtr : elem->rightPtr;
-       
-        while (descCopy != NULL) // перемещение по списку уровней на уровень ниже на каждой итерации
-        {
-            // копируем первый элемент на уровне
-            desc = new TElem<InfType>(descCopy->ID, descCopy->inf);
-            levels.addLevel(desc);
-            (desc->ID < parent->ID) ? parent->leftPtr = desc : parent->rightPtr = desc;
-            nextParent = desc;
-            nextParentCopy = descCopy;
-
-            // идем по остальным
-            while (descCopy->nextPtr != NULL) // перемещение на один элемент по уровню на каждой итерации
-            {
-                desc->nextPtr = new TElem<InfType>(descCopy->nextPtr->ID, descCopy->nextPtr->inf);
-                desc->nextPtr->prevPtr = desc;
-                desc = desc->nextPtr;
-                while (parent != NULL) // подбираем родителя P.S. условие - чистая формальность, прокатило бы и true
-                {
-                    if (desc->ID < parent->ID)
-                    {
-                        parent->leftPtr = desc;
-                        break;
-                    }
-                    else if (parentCopy->rightPtr)
-                    {
-                        if (desc->ID == parentCopy->rightPtr->ID)
-                        {
-                            parent->rightPtr = desc;
-                            break;
-                        }
-                    }
-                    
-                    parent = parent->nextPtr;  
-                    parentCopy = parentCopy->nextPtr;
-                }
-                descCopy = descCopy->nextPtr;
-            }
-
-            parent = nextParent; // перемещаем уровень родителей текущего дерева
-            parentCopy = nextParentCopy; // перемещаем уровень родителей копируемого дерева
-            while (parentCopy != NULL)
-            {
-                if (descCopy = (parentCopy->leftPtr) ? parentCopy->leftPtr : parentCopy->rightPtr) // перемещаем уровень потомков копируемого дерева
-                {
-                    break;
-                }
-                parentCopy = parentCopy->nextPtr;
-                parent = parent->nextPtr;
-            }
-            desc = NULL;
-        } 
-    }
 }
 
 
@@ -454,79 +451,75 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
 {
     TElem<InfType> *parent = NULL;
 
-    if (!searchKey(key, parent)) // если элемент не найден
-        return false;
-
-    if (parent == NULL)
+    if (searchKey(key, parent)) // если элемент найден
     {
-        //delRoot();
+        TElem<InfType> *cur = NULL;
+
+        if (key > parent->ID) // если работаем с правым потомком
+        {
+            cur = parent->rightPtr;
+            if ((cur->leftPtr || cur->rightPtr) == NULL) // если у удаляемого элемента нет потомков
+            {
+                parent->rightPtr = NULL;
+            }
+            else if ((cur->leftPtr != NULL) && (cur->rightPtr == NULL)) // если у удаляемого элемента есть только левый потомок
+            {
+                parent->rightPtr = cur->leftPtr;
+            }
+            else if ((cur->leftPtr == NULL) && (cur->rightPtr != NULL)) // если у удаляемого элемента есть только правый потомок
+            {
+                parent->rightPtr = cur->rightPtr;
+            }
+            else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
+            {
+                /*TElem<InfType> *parentMin = cur, *minNode;
+                // ищем минимальный элемент в правом поддереве
+                minNode = minElem(cur->rightPtr, parentMin, depth = 1);
+                // перезаписываем его значения в удаляемый элемент
+                cur->ID = minNode->ID;
+                cur->inf = minNode->inf;
+                // первый случай, если в правом поддереве несколько элементов; второй - если один
+                (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
+                // готовим к удалению
+                cur = minNode;*/
+            }
+        }
+        else // если работаем с левым потомком
+        {
+            cur = parent->leftPtr;
+            if ((cur->leftPtr || cur->rightPtr) == NULL) // если у удаляемого элемента нет потомков
+            {
+                parent->leftPtr = NULL;
+            }
+            else if ((cur->leftPtr != NULL) && (cur->rightPtr == NULL)) // если у удаляемого элемента есть только левый потомок
+            {
+                parent->leftPtr = cur->leftPtr;
+            }
+            else if ((cur->leftPtr == NULL) && (cur->rightPtr != NULL)) // если у удаляемого элемента есть только правый потомок
+            {
+                parent->leftPtr = cur->rightPtr;
+            }
+            else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
+            {
+                /*TElem<InfType> *parentMin = cur, *minNode;
+                // ищем минимальный элемент в правом поддереве
+                minNode = minElem(cur->rightPtr, parentMin, depth = 1);
+                // перезаписываем его значения в удаляемый элемент
+                cur->ID = minNode->ID;
+                cur->inf = minNode->inf;
+                // первый случай, если в правом поддереве несколько элементов; второй - если один
+                (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
+                // готовим к удалению
+                cur = minNode;*/
+            }
+        }
+
+        levels.delFromLevel(cur);
+        delete cur;
         return true;
     }
 
-    TElem<InfType> *cur = NULL;
-
-    if (key > parent->ID) // если работаем с правым потомком
-    {
-        cur = parent->rightPtr; 
-        if ((cur->leftPtr || cur->rightPtr) == NULL) // если у удаляемого элемента нет потомков
-        {
-            parent->rightPtr = NULL; 
-        }
-        else if ((cur->leftPtr != NULL) && (cur->rightPtr == NULL)) // если у удаляемого элемента есть только левый потомок
-        {
-            parent->rightPtr = cur->leftPtr;
-        }
-        else if ((cur->leftPtr == NULL) && (cur->rightPtr != NULL)) // если у удаляемого элемента есть только правый потомок
-        {
-            parent->rightPtr = cur->rightPtr;
-        }
-        else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
-        {
-            /*TElem<InfType> *parentMin = cur, *minNode;
-            // ищем минимальный элемент в правом поддереве
-            minNode = minElem(cur->rightPtr, parentMin, depth = 1); 
-            // перезаписываем его значения в удаляемый элемент
-            cur->ID = minNode->ID;
-            cur->inf = minNode->inf;
-            // первый случай, если в правом поддереве несколько элементов; второй - если один
-            (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
-            // готовим к удалению
-            cur = minNode;*/
-        }
-    }
-    else // если работаем с левым потомком
-    {
-        cur = parent->leftPtr;
-        if ((cur->leftPtr || cur->rightPtr) == NULL) // если у удаляемого элемента нет потомков
-        {
-            parent->leftPtr = NULL;
-        }
-        else if ((cur->leftPtr != NULL) && (cur->rightPtr == NULL)) // если у удаляемого элемента есть только левый потомок
-        {
-            parent->leftPtr = cur->leftPtr;
-        }
-        else if ((cur->leftPtr == NULL) && (cur->rightPtr != NULL)) // если у удаляемого элемента есть только правый потомок
-        {
-            parent->leftPtr = cur->rightPtr;
-        }
-        else if ((cur->leftPtr && cur->rightPtr) != NULL) // если есть оба потомка
-        {
-            /*TElem<InfType> *parentMin = cur, *minNode;
-            // ищем минимальный элемент в правом поддереве
-            minNode = minElem(cur->rightPtr, parentMin, depth = 1);
-            // перезаписываем его значения в удаляемый элемент
-            cur->ID = minNode->ID;
-            cur->inf = minNode->inf;
-            // первый случай, если в правом поддереве несколько элементов; второй - если один
-            (parentMin != cur) ? parentMin->leftPtr = minNode->rightPtr : parentMin->rightPtr = NULL;
-            // готовим к удалению
-            cur = minNode;*/
-        }
-    }
-   
-    levels.delFromLevel(cur, depth);
-    delete cur;
-    return true;
+    return false;
 }
 
 
