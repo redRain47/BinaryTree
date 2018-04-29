@@ -30,22 +30,26 @@ int main()
 	{
 		cout << "Enter key: ";
 		cin >> key;
-		cout << "Enter data: ";
-		cin >> data;
+		/*cout << "Enter data: ";
+		cin >> data;*/
 		if (key != -1)
 			t1.addNode(key, data);
 	}
     BaseAction<int> *p = new Print<int>;
     cout << endl;
     t1.actionOnElement(p);
-
-    //t1.delElemForKey(9);
-
-    BinTree<int> t2 = t1;
+    
+    //t1.delElemForData(96);
+    t1.delElemForKey(7);
     cout << endl;
-    t2.actionOnElement(p);
+    t1.actionOnElement(p);
+
+    /*BinTree<int> t2 = t1;
+    cout << endl;
+    t2.actionOnElement(p);*/
+    
     delete p;
-    if (t2.breadthSearch(96)) cout << "\nNICE!\n";
+    if (t1.breadthSearch(96)) cout << "\nNICE!\n";
 
 	return 0;
 }
