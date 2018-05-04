@@ -1,8 +1,8 @@
 ﻿  main.cpp
-d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(151): warning C4800: BinTree<int>::TLevel *: принудительно задано логическое значение "true" или "false" (предупреждение о производительности)
-  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(150): note: при компиляции функции-члена "<Нет данных>" класса <Нет данных>
-  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(235): note: см. ссылку на создание экземпляров функции шаблон при компиляции "bool BinTree<int>::Levels::operator ++(void)"
-  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(167): note: см. ссылку на создание экземпляров класса шаблон при компиляции "BinTree<int>::Levels"
+d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(159): warning C4800: BinTree<int>::TLevel *: принудительно задано логическое значение "true" или "false" (предупреждение о производительности)
+  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(158): note: при компиляции функции-члена "<Нет данных>" класса <Нет данных>
+  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(255): note: см. ссылку на создание экземпляров функции шаблон при компиляции "bool BinTree<int>::Levels::operator ++(void)"
+  d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\bintree.h(175): note: см. ссылку на создание экземпляров класса шаблон при компиляции "BinTree<int>::Levels"
   d:\учеба\iii курс\2-й семестр\сіп\bt_git\binarytree\binarytree\main.cpp(24): note: см. ссылку на создание экземпляров класса шаблон при компиляции "BinTree<int>"
   BinaryTree.vcxproj -> D:\Учеба\III курс\2-й семестр\СІП\BT_GIT\BinaryTree\x64\Debug\BinaryTree.exe
   BinaryTree.vcxproj -> D:\Учеба\III курс\2-й семестр\СІП\BT_GIT\BinaryTree\x64\Debug\BinaryTree.pdb (Full PDB)

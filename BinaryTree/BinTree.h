@@ -186,7 +186,7 @@ private:
 
     void copyTree(TElem<InfType> *elem); // копирование структуры дерева и всех его внутренних связей
 
-    void delElem(TElem<InfType> *elem, TElem<InfType> *parent, int &key, InfType &data); // удаление элемента (рекурсивное)
+    void delElem(TElem<InfType> *elem, TElem<InfType> *parent); // удаление элемента (рекурсивное)
 
     void delAll(TElem<InfType> *elem); // удаление всех элементов дерева
 
@@ -369,7 +369,7 @@ void BinTree<InfType>::copyTree(TElem<InfType> *elem) // копирование структуры д
 
 
 template <typename InfType>
-void BinTree<InfType>::delElem(TElem<InfType> *elem, TElem<InfType> *parent, int &key, InfType &data) // удаление элемента (рекурсивное)
+void BinTree<InfType>::delElem(TElem<InfType> *elem, TElem<InfType> *parent) // удаление элемента (рекурсивное)
 {
     if ((elem->leftPtr || elem->rightPtr) == NULL) // если у удаляемого элемента нет потомков
     {
@@ -391,19 +391,19 @@ void BinTree<InfType>::delElem(TElem<InfType> *elem, TElem<InfType> *parent, int
         }
         elem->ID = cur->ID;
         elem->inf = cur->inf;
-        delElem(cur, parentCur, key, data);
+        delElem(cur, parentCur);
     }
     else if (elem->rightPtr != NULL) // если у удаляемого элемента есть правый потомок
     {
         elem->ID = elem->rightPtr->ID;
         elem->inf = elem->rightPtr->inf;
-        delElem(elem->rightPtr, elem, key, data);
+        delElem(elem->rightPtr, elem);
     }
     else if (elem->leftPtr != NULL) // если у удаляемого элемента есть левый потомок
     {
         elem->ID = elem->leftPtr->ID;
         elem->inf = elem->leftPtr->inf;
-        delElem(elem->leftPtr, elem, key, data);
+        delElem(elem->leftPtr, elem);
     }
 }
 
@@ -516,17 +516,14 @@ bool BinTree<InfType>::delElemForKey(int key) // удаление элемента дерева по клю
 
     if (searchKey(key, parent)) // если элемент найден
     {
-        int tempKey;
-        InfType tempData;
-
         if (parent != NULL) 
         {
             TElem<InfType> *cur = (key > parent->ID) ? parent->rightPtr : parent->leftPtr;
-            delElem(cur, parent, tempKey, tempData);
+            delElem(cur, parent);
         }
         else // если удаляемый элемент - корень
         {
-            delElem(root, parent, tempKey, tempData); 
+            delElem(root, parent); 
         }
 
         return true;
